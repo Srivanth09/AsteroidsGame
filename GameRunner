@@ -1,0 +1,172 @@
+import pygame
+import random
+import json
+
+# Initializing Pygame
+pygame.init()
+
+# Set screen dimensions
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Asteroids Game")
+
+# Define colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Frame rate
+FPS = 60
+clock = pygame.time.Clock()
+
+# Load ship image
+ship_img = pygame.image.load("ship.png")
+ship_width, ship_height = 50, 50
+ship_img = pygame.transform.scale(ship_img, (ship_width, ship_height))
+
+# Asteroid settings
+asteroid_img = pygame.image.load("asteroid.png")
+asteroid_size = 50
+asteroid_img = pygame.transform.scale(asteroid_img, (asteroid_size, asteroid_size))
+
+# Bullet settings
+bullet_speed = 10
+
+# Leaderboard settings
+LEADERBOARD_FILE = "leaderboard.json"
+MAX_LEADERBOARD_ENTRIES = 5
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = ship_img
+        self.rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT - 50))
+        self.speed = 5
+
+    def move(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and self.rect.left > 0:
+            self.rect.x -= self.speed
+        if keys[pygame.K_RIGHT] and self.rect.right < WIDTH:
+            self.rect.x += self.speed
+        if keys[pygame.K_UP] and self.rect.top > 0:
+            self.rect.y -= self.speed
+        if keys[pygame.K_DOWN] and self.rect.bottom < HEIGHT:
+            self.rect.y += self.speed
+
+    def shoot(self):
+        return Bullet(self.rect.centerx, self.rect.top)
+
+class Asteroid(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = asteroid_img
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, WIDTH - asteroid_size)
+        self.rect.y = random.randint(-100, -40)
+        self.speedy = random.randint(1, 5)
+
+    def update(self):
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.rect.x = random.randint(0, WIDTH - asteroid_size)
+            self.rect.y = random.randint(-100, -40)
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((10, 20))
+        self.image.fill(WHITE)
+        self.rect = self.image.get_rect(center=(x, y))
+        self.speedy = -bullet_speed
+
+    def update(self):
+        self.rect.y += self.speedy
+        if self.rect.bottom < 0:
+            self.kill()
+
+# Leaderboard Functions (THIS WILL ERROR WITHOUT leaderboard.json FILE)
+def load_leaderboard():
+    with open(LEADERBOARD_FILE, "r") as file:
+        return json.load(file)
+
+def save_leaderboard(leaderboard):
+    with open(LEADERBOARD_FILE, "w") as file:
+        json.dump(leaderboard, file)
+
+def update_leaderboard(score, leaderboard):
+    name = input("Enter your name: ")
+    leaderboard.append({"name": name, "score": score})
+    leaderboard = sorted(leaderboard, key=lambda x: x['score'], reverse=True)
+    return leaderboard[:MAX_LEADERBOARD_ENTRIES]
+
+def display_leaderboard(leaderboard):
+    print("\n--- Leaderboard ---")
+    for entry in leaderboard:
+        print(f"{entry['name']} - {entry['score']}")
+
+# Sprite groups
+all_sprites = pygame.sprite.Group()
+asteroids = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
+
+# Create player
+player = Player()
+all_sprites.add(player)
+
+# Create asteroids
+for i in range(5):
+    asteroid = Asteroid()
+    all_sprites.add(asteroid)
+    asteroids.add(asteroid)
+
+# Initialize the score outside the game loop
+score = 0
+
+# Load the leaderboard from the file
+leaderboard = load_leaderboard()
+
+# Main game loop
+running = True
+while running:
+    clock.tick(FPS)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                bullet = player.shoot()
+                all_sprites.add(bullet)
+                bullets.add(bullet)
+
+    # Update sprites
+    all_sprites.update()
+    player.move()
+    
+    # Check for collisions between bullets and asteroids
+    hits = pygame.sprite.groupcollide(asteroids, bullets, True, True)
+    
+    for hit in hits:
+        asteroid = Asteroid()
+        all_sprites.add(asteroid)
+        asteroids.add(asteroid)
+        score += 1  # Increase the score for every hit
+        FPS += 1.5 # Increase speed of the game
+        print(f"Score: {score}")
+
+    # Check for collisions between player and asteroids
+    if pygame.sprite.spritecollideany(player, asteroids):
+        print("Game Over!")
+        running = False
+
+    # Draw everything
+    screen.fill(BLACK)
+    all_sprites.draw(screen)
+    pygame.display.flip()
+
+# After the game ends, update and shpw the leaderboard
+leaderboard = update_leaderboard(score, leaderboard)
+save_leaderboard(leaderboard)
+display_leaderboard(leaderboard)
+
+pygame.quit()
