@@ -20,12 +20,12 @@ clock = pygame.time.Clock()
 
 # Load ship image
 ship_img = pygame.image.load("ship.jpeg")
-ship_width, ship_height = 50, 50
+ship_width, ship_height = 30, 50
 ship_img = pygame.transform.scale(ship_img, (ship_width, ship_height))
 
 # Asteroid settings
 asteroid_img = pygame.image.load("asteroid.png")
-asteroid_size = 50
+asteroid_size = 40
 asteroid_img = pygame.transform.scale(asteroid_img, (asteroid_size, asteroid_size))
 
 # Bullet settings
