@@ -19,7 +19,7 @@ FPS = 60
 clock = pygame.time.Clock()
 
 # Load ship image
-ship_img = pygame.image.load("ship.png")
+ship_img = pygame.image.load("ship.jpeg")
 ship_width, ship_height = 50, 50
 ship_img = pygame.transform.scale(ship_img, (ship_width, ship_height))
 
